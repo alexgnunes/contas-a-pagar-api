@@ -1,0 +1,16 @@
+package br.com.alexnunes.contaspagar.domain.conta;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface ContaRepository {
+
+    Conta salvar(Conta conta);
+
+    Optional<Conta> buscarPorId(UUID id);
+
+    void excluir(Conta conta);
+
+    boolean existePorFornecedorId(UUID fornecedorId);
+
+}
