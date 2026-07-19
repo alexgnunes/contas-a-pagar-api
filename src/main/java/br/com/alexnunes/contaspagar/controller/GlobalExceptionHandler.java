@@ -2,6 +2,7 @@ package br.com.alexnunes.contaspagar.controller;
 
 import br.com.alexnunes.contaspagar.application.auth.CredenciaisInvalidasException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ContaNaoEncontradaException;
+import br.com.alexnunes.contaspagar.domain.conta.exception.DataPagamentoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.IntervaloDataInvalidoException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.SituacaoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ValorInvalidoException;
@@ -11,10 +12,14 @@ import br.com.alexnunes.contaspagar.domain.importacao.exception.ArmazenamentoArq
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ArquivoVazioException;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ImportacaoNaoEncontradaException;
 import br.com.alexnunes.contaspagar.infrastructure.web.ErrorResponse;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -24,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -65,10 +71,69 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(DataPagamentoInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleDataPagamentoInvalida(DataPagamentoInvalidaException ex,
+                                                                       HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(IntervaloDataInvalidoException.class)
     public ResponseEntity<ErrorResponse> handleIntervaloDataInvalido(IntervaloDataInvalidoException ex,
                                                                       HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleArgumentoInvalido(MethodArgumentNotValidException ex,
+                                                                   HttpServletRequest request) {
+        String mensagem = ex.getBindingResult().getFieldErrors().stream()
+                .map(erro -> String.format("%s: %s", erro.getField(), erro.getDefaultMessage()))
+                .collect(Collectors.joining("; "));
+        return build(HttpStatus.BAD_REQUEST, mensagem, request);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleCorpoIlegivel(HttpMessageNotReadableException ex,
+                                                               HttpServletRequest request) {
+        Throwable causa = ex.getMostSpecificCause();
+        String mensagem = causa instanceof InvalidFormatException invalidFormat
+                ? String.format("Valor inválido para o campo '%s': %s", nomeDoCampo(invalidFormat),
+                        invalidFormat.getValue())
+                : "Corpo da requisição inválido ou malformado";
+        return build(HttpStatus.BAD_REQUEST, mensagem, request);
+    }
+
+    private String nomeDoCampo(InvalidFormatException ex) {
+        return ex.getPath().isEmpty() ? "desconhecido" : ex.getPath().get(ex.getPath().size() - 1).getFieldName();
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ErrorResponse> handlePropriedadeInvalida(PropertyReferenceException ex,
+                                                                     HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<ErrorResponse> handleUsoInvalidoDeApiDeAcessoADados(
+            org.springframework.dao.InvalidDataAccessApiUsageException ex, HttpServletRequest request) {
+        if (causadoPorPropriedadeInexistente(ex)) {
+            return build(HttpStatus.BAD_REQUEST,
+                    "Parâmetro de ordenação (sort) inválido: propriedade inexistente na entidade", request);
+        }
+        log.error("Erro inesperado (InvalidDataAccessApiUsageException)", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno inesperado", request);
+    }
+
+    private boolean causadoPorPropriedadeInexistente(Throwable ex) {
+        Throwable atual = ex;
+        while (atual != null) {
+            if (atual instanceof org.hibernate.query.SemanticException
+                    || atual instanceof org.hibernate.query.sqm.PathElementException) {
+                return true;
+            }
+            atual = atual.getCause();
+        }
+        return false;
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

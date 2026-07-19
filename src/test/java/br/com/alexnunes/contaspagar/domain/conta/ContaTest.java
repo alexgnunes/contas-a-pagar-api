@@ -94,6 +94,26 @@ class ContaTest {
     }
 
     @Test
+    void devePagarContaComDataPagamentoInformada() {
+        Conta conta = novaConta();
+        LocalDate dataPagamento = LocalDate.now().minusDays(3);
+
+        conta.pagar(dataPagamento);
+
+        assertThat(conta.getSituacao()).isEqualTo(Situacao.PAGO);
+        assertThat(conta.getDataPagamento()).isEqualTo(dataPagamento);
+    }
+
+    @Test
+    void naoDevePagarComDataPagamentoFutura() {
+        Conta conta = novaConta();
+        LocalDate dataFutura = LocalDate.now().plusDays(1);
+
+        assertThatThrownBy(() -> conta.pagar(dataFutura))
+                .isInstanceOf(DataPagamentoInvalidaException.class);
+    }
+
+    @Test
     void naoDevePagarContaCancelada() {
         Conta conta = novaConta();
         conta.cancelar();

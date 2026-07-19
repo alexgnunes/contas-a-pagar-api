@@ -6,6 +6,12 @@ import br.com.alexnunes.contaspagar.controller.conta.dto.ContaRequest;
 import br.com.alexnunes.contaspagar.controller.conta.dto.ContaResponse;
 import br.com.alexnunes.contaspagar.domain.conta.Conta;
 import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -41,19 +47,27 @@ public class ContaController {
     }
 
     @PostMapping
-    public ResponseEntity<ContaResponse> criar(@Valid @RequestBody ContaRequest request) {
+    public ResponseEntity<ContaResponse> criar(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(examples = {
+                    @ExampleObject(name = "Conta válida", value = ContaExemplos.CONTA_VALIDA),
+                    @ExampleObject(name = "Valor negativo", value = ContaExemplos.VALOR_NEGATIVO),
+                    @ExampleObject(name = "Fornecedor inexistente", value = ContaExemplos.FORNECEDOR_INEXISTENTE)
+            }))
+            @Valid @RequestBody ContaRequest request) {
         Conta conta = contaService.criar(request.descricao(), request.valor(), request.dataVencimento(),
-                request.fornecedorId());
+                request.fornecedorId(), request.situacao(), request.dataPagamento());
         return ResponseEntity.created(URI.create(String.format("/contas/%s", conta.getId())))
                 .body(contaMapper.toResponse(conta));
     }
 
     @GetMapping
+    @Parameter(name = "sort", in = ParameterIn.QUERY, description = "Ordenação no formato propriedade,direção (asc|desc)",
+            array = @ArraySchema(schema = @Schema(type = "string", example = "descricao,asc")))
     public ResponseEntity<Page<ContaResponse>> pesquisar(
             @RequestParam(required = false) String descricao,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataVencimentoInicial,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataVencimentoFinal,
-            Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         PeriodoFiltro periodoVencimento = new PeriodoFiltro(dataVencimentoInicial, dataVencimentoFinal);
         Page<ContaResponse> pagina = contaService.pesquisar(descricao, periodoVencimento, pageable)
                 .map(contaMapper::toResponse);
@@ -76,7 +90,7 @@ public class ContaController {
     @PatchMapping("/{id}/situacao")
     public ResponseEntity<ContaResponse> alterarSituacao(@PathVariable UUID id,
                                                            @Valid @RequestBody AlterarSituacaoRequest request) {
-        Conta conta = contaService.alterarSituacao(id, request.situacao());
+        Conta conta = contaService.alterarSituacao(id, request.situacao(), request.dataPagamento());
         return ResponseEntity.ok(contaMapper.toResponse(conta));
     }
 

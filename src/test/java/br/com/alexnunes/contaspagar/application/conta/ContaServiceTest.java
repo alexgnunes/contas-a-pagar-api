@@ -5,6 +5,7 @@ import br.com.alexnunes.contaspagar.domain.conta.ContaRepository;
 import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
 import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ContaNaoEncontradaException;
+import br.com.alexnunes.contaspagar.domain.conta.exception.DataPagamentoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.IntervaloDataInvalidoException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.SituacaoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.fornecedor.Fornecedor;
@@ -60,31 +61,20 @@ class ContaServiceTest {
     }
 
     @Test
-    void deveCriarContaComFornecedorExistente() {
-        stubSalvarRetornandoOMesmo();
-        when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
-
-        Conta conta = contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
-                fornecedor.getId());
-
-        assertThat(conta.getDescricao()).isEqualTo("Energia");
-        assertThat(conta.getSituacao()).isEqualTo(Situacao.PENDENTE);
-    }
-
-    @Test
-    void deveCriarContaPendenteViaOverloadDeImportacaoQuandoSituacaoPendente() {
+    void deveCriarContaPendenteQuandoSituacaoPendente() {
         stubSalvarRetornandoOMesmo();
         when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
 
         Conta conta = contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
                 fornecedor.getId(), Situacao.PENDENTE, null);
 
+        assertThat(conta.getDescricao()).isEqualTo("Energia");
         assertThat(conta.getSituacao()).isEqualTo(Situacao.PENDENTE);
         assertThat(conta.getDataPagamento()).isNull();
     }
 
     @Test
-    void deveCriarContaPagaViaOverloadDeImportacaoQuandoSituacaoPaga() {
+    void deveCriarContaPagaQuandoSituacaoPaga() {
         stubSalvarRetornandoOMesmo();
         when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
         LocalDate dataPagamento = LocalDate.now().minusDays(1);
@@ -97,7 +87,7 @@ class ContaServiceTest {
     }
 
     @Test
-    void deveCriarContaCanceladaViaOverloadDeImportacaoQuandoSituacaoCancelada() {
+    void deveCriarContaCanceladaQuandoSituacaoCancelada() {
         stubSalvarRetornandoOMesmo();
         when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
 
@@ -109,11 +99,34 @@ class ContaServiceTest {
     }
 
     @Test
+    void naoDeveCriarContaPendenteComDataPagamentoInformada() {
+        assertThatThrownBy(() -> contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
+                fornecedor.getId(), Situacao.PENDENTE, LocalDate.now()))
+                .isInstanceOf(DataPagamentoInvalidaException.class)
+                .hasMessage("dataPagamento deve estar vazia quando situacao=PENDENTE");
+
+        verify(fornecedorRepository, never()).buscarPorId(any());
+        verify(contaRepository, never()).salvar(any());
+    }
+
+    @Test
+    void naoDeveCriarContaCanceladaComDataPagamentoInformada() {
+        assertThatThrownBy(() -> contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
+                fornecedor.getId(), Situacao.CANCELADO, LocalDate.now()))
+                .isInstanceOf(DataPagamentoInvalidaException.class)
+                .hasMessage("dataPagamento deve estar vazia quando situacao=CANCELADO");
+
+        verify(fornecedorRepository, never()).buscarPorId(any());
+        verify(contaRepository, never()).salvar(any());
+    }
+
+    @Test
     void naoDeveCriarContaComFornecedorInexistente() {
         UUID fornecedorId = UUID.randomUUID();
         when(fornecedorRepository.buscarPorId(fornecedorId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.now(), fornecedorId))
+        assertThatThrownBy(() -> contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.now(),
+                fornecedorId, Situacao.PENDENTE, null))
                 .isInstanceOf(FornecedorNaoEncontradoException.class);
     }
 
@@ -224,16 +237,41 @@ class ContaServiceTest {
     }
 
     @Test
-    void devePagarContaViaAlterarSituacao() {
+    void devePagarContaViaAlterarSituacaoSemDataPagamentoInformada() {
         stubSalvarRetornandoOMesmo();
         Conta conta = novaConta();
         UUID id = UUID.randomUUID();
         when(contaRepository.buscarPorId(id)).thenReturn(Optional.of(conta));
 
-        Conta atualizada = contaService.alterarSituacao(id, Situacao.PAGO);
+        Conta atualizada = contaService.alterarSituacao(id, Situacao.PAGO, null);
 
         assertThat(atualizada.getSituacao()).isEqualTo(Situacao.PAGO);
         assertThat(atualizada.getDataPagamento()).isEqualTo(LocalDate.now());
+    }
+
+    @Test
+    void devePagarContaViaAlterarSituacaoComDataPagamentoInformada() {
+        stubSalvarRetornandoOMesmo();
+        Conta conta = novaConta();
+        UUID id = UUID.randomUUID();
+        when(contaRepository.buscarPorId(id)).thenReturn(Optional.of(conta));
+        LocalDate dataPagamento = LocalDate.now().minusDays(3);
+
+        Conta atualizada = contaService.alterarSituacao(id, Situacao.PAGO, dataPagamento);
+
+        assertThat(atualizada.getSituacao()).isEqualTo(Situacao.PAGO);
+        assertThat(atualizada.getDataPagamento()).isEqualTo(dataPagamento);
+    }
+
+    @Test
+    void naoDevePagarComDataPagamentoFuturaViaAlterarSituacao() {
+        Conta conta = novaConta();
+        UUID id = UUID.randomUUID();
+        when(contaRepository.buscarPorId(id)).thenReturn(Optional.of(conta));
+        LocalDate dataFutura = LocalDate.now().plusDays(1);
+
+        assertThatThrownBy(() -> contaService.alterarSituacao(id, Situacao.PAGO, dataFutura))
+                .isInstanceOf(DataPagamentoInvalidaException.class);
     }
 
     @Test
@@ -243,7 +281,7 @@ class ContaServiceTest {
         UUID id = UUID.randomUUID();
         when(contaRepository.buscarPorId(id)).thenReturn(Optional.of(conta));
 
-        Conta atualizada = contaService.alterarSituacao(id, Situacao.CANCELADO);
+        Conta atualizada = contaService.alterarSituacao(id, Situacao.CANCELADO, null);
 
         assertThat(atualizada.getSituacao()).isEqualTo(Situacao.CANCELADO);
     }
@@ -254,7 +292,7 @@ class ContaServiceTest {
         UUID id = UUID.randomUUID();
         when(contaRepository.buscarPorId(id)).thenReturn(Optional.of(conta));
 
-        assertThatThrownBy(() -> contaService.alterarSituacao(id, Situacao.PENDENTE))
+        assertThatThrownBy(() -> contaService.alterarSituacao(id, Situacao.PENDENTE, null))
                 .isInstanceOf(SituacaoInvalidaException.class);
     }
 

@@ -5,6 +5,7 @@ import br.com.alexnunes.contaspagar.domain.conta.ContaRepository;
 import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
 import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ContaNaoEncontradaException;
+import br.com.alexnunes.contaspagar.domain.conta.exception.DataPagamentoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.IntervaloDataInvalidoException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.SituacaoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.fornecedor.Fornecedor;
@@ -31,15 +32,13 @@ public class ContaService {
     }
 
     @Transactional
-    public Conta criar(String descricao, BigDecimal valor, LocalDate dataVencimento, UUID fornecedorId) {
-        Fornecedor fornecedor = buscarFornecedor(fornecedorId);
-        Conta conta = Conta.criarPendente(descricao, valor, dataVencimento, fornecedor);
-        return contaRepository.salvar(conta);
-    }
-
-    @Transactional
     public Conta criar(String descricao, BigDecimal valor, LocalDate dataVencimento, UUID fornecedorId,
                         Situacao situacao, LocalDate dataPagamento) {
+        if (situacao != Situacao.PAGO && dataPagamento != null) {
+            throw new DataPagamentoInvalidaException(
+                    String.format("dataPagamento deve estar vazia quando situacao=%s", situacao));
+        }
+
         Fornecedor fornecedor = buscarFornecedor(fornecedorId);
 
         Conta conta = switch (situacao) {
@@ -78,14 +77,14 @@ public class ContaService {
     }
 
     @Transactional
-    public Conta alterarSituacao(UUID id, Situacao novaSituacao) {
+    public Conta alterarSituacao(UUID id, Situacao novaSituacao, LocalDate dataPagamento) {
         Conta conta = buscarPorId(id);
 
         switch (novaSituacao) {
-            case PAGO -> conta.pagar();
+            case PAGO -> conta.pagar(dataPagamento);
             case CANCELADO -> conta.cancelar();
             case PENDENTE -> throw new SituacaoInvalidaException(
-                    "Não é possível definir a situação como pendente diretamente");
+                    "Não é possível definir a situação como PENDENTE — transição não suportada por este endpoint");
         }
 
         return contaRepository.salvar(conta);

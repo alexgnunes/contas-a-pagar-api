@@ -97,14 +97,21 @@ public class Conta {
     }
 
     public void pagar() {
+        pagar(null);
+    }
+
+    public void pagar(LocalDate dataPagamento) {
         if (situacao == Situacao.CANCELADO) {
             throw new SituacaoInvalidaException("Conta cancelada não pode ser paga");
         }
         if (situacao == Situacao.PAGO) {
             throw new SituacaoInvalidaException("Conta já está paga");
         }
+        if (dataPagamento != null) {
+            validarDataPagamento(dataPagamento);
+        }
         this.situacao = Situacao.PAGO;
-        this.dataPagamento = LocalDate.now();
+        this.dataPagamento = dataPagamento != null ? dataPagamento : LocalDate.now();
     }
 
     public void cancelar() {
