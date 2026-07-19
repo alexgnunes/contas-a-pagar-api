@@ -9,6 +9,7 @@ import br.com.alexnunes.contaspagar.domain.importacao.ImportacaoRepository;
 import br.com.alexnunes.contaspagar.domain.importacao.LeitorCsvImportacao;
 import br.com.alexnunes.contaspagar.domain.importacao.LinhaCsvImportacao;
 import br.com.alexnunes.contaspagar.domain.importacao.PublicadorImportacao;
+import br.com.alexnunes.contaspagar.domain.importacao.exception.CsvInvalidoException;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ImportacaoNaoEncontradaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class ImportacaoService {
 
     private static final Logger log = LoggerFactory.getLogger(ImportacaoService.class);
+    private static final String MOTIVO_FALHA_GENERICO = "Falha inesperada ao processar a importação";
 
     private final ArmazenamentoArquivoImportacao armazenamentoArquivo;
     private final ImportacaoRepository importacaoRepository;
@@ -66,7 +68,7 @@ public class ImportacaoService {
             processarLinhas(importacao, protocolo);
         } catch (RuntimeException e) {
             log.error("Falha inesperada ao processar importação {}, marcando como FALHOU", protocolo, e);
-            importacao.falhar();
+            importacao.falhar(MOTIVO_FALHA_GENERICO);
             importacaoRepository.salvar(importacao);
         }
     }
@@ -75,9 +77,14 @@ public class ImportacaoService {
         List<LinhaCsvImportacao> linhas;
         try (InputStream conteudo = armazenamentoArquivo.abrir(importacao.getCaminhoArquivo())) {
             linhas = leitor.ler(conteudo);
+        } catch (CsvInvalidoException e) {
+            log.error("Falha estrutural ao processar importação {}", protocolo, e);
+            importacao.falhar(e.getMessage());
+            importacaoRepository.salvar(importacao);
+            return;
         } catch (Exception e) {
             log.error("Falha estrutural ao processar importação {}", protocolo, e);
-            importacao.falhar();
+            importacao.falhar(MOTIVO_FALHA_GENERICO);
             importacaoRepository.salvar(importacao);
             return;
         }

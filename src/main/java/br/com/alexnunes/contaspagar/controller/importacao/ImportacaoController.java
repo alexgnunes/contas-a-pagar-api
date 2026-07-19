@@ -54,6 +54,7 @@ public class ImportacaoController {
                 importacao.getTotalRegistros(),
                 importacao.getSucesso(),
                 importacao.getFalhas(),
+                importacao.getMotivoFalha(),
                 downloadErros));
     }
 

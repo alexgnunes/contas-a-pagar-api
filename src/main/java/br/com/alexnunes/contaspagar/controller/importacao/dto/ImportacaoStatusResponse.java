@@ -8,5 +8,6 @@ public record ImportacaoStatusResponse(
         int totalRegistros,
         int sucesso,
         int falhas,
+        String motivoFalha,
         String downloadErros) {
 }

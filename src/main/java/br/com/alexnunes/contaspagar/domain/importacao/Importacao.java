@@ -44,6 +44,9 @@ public class Importacao {
     @Column(nullable = false)
     private int falhas;
 
+    @Column(name = "motivo_falha")
+    private String motivoFalha;
+
     public Importacao(String protocolo, String caminhoArquivo) {
         this.protocolo = protocolo;
         this.caminhoArquivo = caminhoArquivo;
@@ -60,8 +63,9 @@ public class Importacao {
         this.status = falhas > 0 ? ImportacaoStatus.CONCLUIDO_COM_ERROS : ImportacaoStatus.CONCLUIDO;
     }
 
-    public void falhar() {
+    public void falhar(String motivo) {
         this.status = ImportacaoStatus.FALHOU;
+        this.motivoFalha = motivo;
     }
 
     @Override

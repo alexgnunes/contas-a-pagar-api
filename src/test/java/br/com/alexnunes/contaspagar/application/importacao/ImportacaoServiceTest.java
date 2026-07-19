@@ -146,6 +146,7 @@ class ImportacaoServiceTest {
         importacaoService.processarMensagem("ABC123");
 
         assertThat(importacao.getStatus()).isEqualTo(ImportacaoStatus.FALHOU);
+        assertThat(importacao.getMotivoFalha()).isEqualTo("Arquivo CSV não possui cabeçalho");
         verify(contaImportacaoService, never()).processarLinha(any());
         verify(importacaoRepository).salvar(importacao);
     }
@@ -176,6 +177,7 @@ class ImportacaoServiceTest {
         importacaoService.processarMensagem("ABC123");
 
         assertThat(importacao.getStatus()).isEqualTo(ImportacaoStatus.FALHOU);
+        assertThat(importacao.getMotivoFalha()).isEqualTo("Falha inesperada ao processar a importação");
     }
 
     @Test
