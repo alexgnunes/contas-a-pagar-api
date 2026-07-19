@@ -5,6 +5,7 @@ import br.com.alexnunes.contaspagar.controller.conta.dto.AlterarSituacaoRequest;
 import br.com.alexnunes.contaspagar.controller.conta.dto.ContaRequest;
 import br.com.alexnunes.contaspagar.controller.conta.dto.ContaResponse;
 import br.com.alexnunes.contaspagar.domain.conta.Conta;
+import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -53,7 +54,8 @@ public class ContaController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataVencimentoInicial,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataVencimentoFinal,
             Pageable pageable) {
-        Page<ContaResponse> pagina = contaService.pesquisar(descricao, dataVencimentoInicial, dataVencimentoFinal, pageable)
+        PeriodoFiltro periodoVencimento = new PeriodoFiltro(dataVencimentoInicial, dataVencimentoFinal);
+        Page<ContaResponse> pagina = contaService.pesquisar(descricao, periodoVencimento, pageable)
                 .map(contaMapper::toResponse);
         return ResponseEntity.ok(pagina);
     }

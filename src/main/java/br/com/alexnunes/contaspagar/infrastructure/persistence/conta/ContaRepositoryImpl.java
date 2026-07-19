@@ -2,11 +2,13 @@ package br.com.alexnunes.contaspagar.infrastructure.persistence.conta;
 
 import br.com.alexnunes.contaspagar.domain.conta.Conta;
 import br.com.alexnunes.contaspagar.domain.conta.ContaRepository;
+import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
+import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,8 +42,14 @@ class ContaRepositoryImpl implements ContaRepository {
     }
 
     @Override
-    public Page<Conta> pesquisar(String descricao, LocalDate dataInicial, LocalDate dataFinal, Pageable pageable) {
-        return jpaRepository.pesquisar(escaparCoringasLike(descricao), dataInicial, dataFinal, pageable);
+    public Page<Conta> pesquisar(String descricao, PeriodoFiltro periodoVencimento, Pageable pageable) {
+        return jpaRepository.pesquisar(escaparCoringasLike(descricao), periodoVencimento.inicio(),
+                periodoVencimento.fim(), pageable);
+    }
+
+    @Override
+    public BigDecimal totalPago(PeriodoFiltro periodoPagamento) {
+        return jpaRepository.totalPago(Situacao.PAGO, periodoPagamento.inicio(), periodoPagamento.fim());
     }
 
     private static String escaparCoringasLike(String valor) {

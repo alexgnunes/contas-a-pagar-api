@@ -11,8 +11,10 @@ import br.com.alexnunes.contaspagar.infrastructure.web.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 
@@ -58,6 +60,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIntervaloDataInvalido(IntervaloDataInvalidoException ex,
                                                                       HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleParametroObrigatorioAusente(MissingServletRequestParameterException ex,
+                                                                            HttpServletRequest request) {
+        String mensagem = String.format("Parâmetro obrigatório ausente: %s", ex.getParameterName());
+        return build(HttpStatus.BAD_REQUEST, mensagem, request);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleParametroComTipoInvalido(MethodArgumentTypeMismatchException ex,
+                                                                         HttpServletRequest request) {
+        String mensagem = String.format("Parâmetro '%s' possui valor inválido: %s", ex.getName(), ex.getValue());
+        return build(HttpStatus.BAD_REQUEST, mensagem, request);
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request) {

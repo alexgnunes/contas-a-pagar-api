@@ -2,6 +2,7 @@ package br.com.alexnunes.contaspagar.application.conta;
 
 import br.com.alexnunes.contaspagar.domain.conta.Conta;
 import br.com.alexnunes.contaspagar.domain.conta.ContaRepository;
+import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
 import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ContaNaoEncontradaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.IntervaloDataInvalidoException;
@@ -77,13 +78,18 @@ public class ContaService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Conta> pesquisar(String descricao, LocalDate dataInicial, LocalDate dataFinal, Pageable pageable) {
-        if (dataInicial != null && dataFinal != null && dataInicial.isAfter(dataFinal)) {
+    public Page<Conta> pesquisar(String descricao, PeriodoFiltro periodoVencimento, Pageable pageable) {
+        return contaRepository.pesquisar(descricao, periodoVencimento, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal totalPago(PeriodoFiltro periodoPagamento) {
+        if (periodoPagamento.inicio() == null || periodoPagamento.fim() == null) {
             throw new IntervaloDataInvalidoException(
-                    "Data inicial não pode ser posterior à data final");
+                    "Período (início e fim) é obrigatório para o relatório de total pago");
         }
 
-        return contaRepository.pesquisar(descricao, dataInicial, dataFinal, pageable);
+        return contaRepository.totalPago(periodoPagamento);
     }
 
     private Fornecedor buscarFornecedor(UUID fornecedorId) {

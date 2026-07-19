@@ -2,6 +2,7 @@ package br.com.alexnunes.contaspagar.application.conta;
 
 import br.com.alexnunes.contaspagar.domain.conta.Conta;
 import br.com.alexnunes.contaspagar.domain.conta.ContaRepository;
+import br.com.alexnunes.contaspagar.domain.conta.PeriodoFiltro;
 import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ContaNaoEncontradaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.IntervaloDataInvalidoException;
@@ -224,21 +225,36 @@ class ContaServiceTest {
     void devePesquisarDelegandoParaRepository() {
         Pageable pageable = Pageable.ofSize(10);
         Page<Conta> pagina = new PageImpl<>(java.util.List.of(novaConta()));
-        when(contaRepository.pesquisar("Energia", null, null, pageable)).thenReturn(pagina);
+        PeriodoFiltro periodoVencimento = new PeriodoFiltro(null, null);
+        when(contaRepository.pesquisar("Energia", periodoVencimento, pageable)).thenReturn(pagina);
 
-        Page<Conta> resultado = contaService.pesquisar("Energia", null, null, pageable);
+        Page<Conta> resultado = contaService.pesquisar("Energia", periodoVencimento, pageable);
 
         assertThat(resultado).isSameAs(pagina);
     }
 
     @Test
-    void naoDevePesquisarComIntervaloDeDataInvertido() {
-        Pageable pageable = Pageable.ofSize(10);
-        LocalDate dataInicial = LocalDate.of(2026, 8, 31);
-        LocalDate dataFinal = LocalDate.of(2026, 8, 1);
+    void deveRetornarTotalPagoDelegandoParaRepository() {
+        PeriodoFiltro periodoPagamento = new PeriodoFiltro(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
+        when(contaRepository.totalPago(periodoPagamento)).thenReturn(new BigDecimal("1500.00"));
 
-        assertThatThrownBy(() -> contaService.pesquisar(null, dataInicial, dataFinal, pageable))
+        BigDecimal total = contaService.totalPago(periodoPagamento);
+
+        assertThat(total).isEqualByComparingTo("1500.00");
+    }
+
+    @Test
+    void naoDeveRetornarTotalPagoQuandoPeriodoIncompleto() {
+        assertThatThrownBy(() -> contaService.totalPago(new PeriodoFiltro(null, LocalDate.of(2026, 8, 31))))
                 .isInstanceOf(IntervaloDataInvalidoException.class);
+
+        assertThatThrownBy(() -> contaService.totalPago(new PeriodoFiltro(LocalDate.of(2026, 8, 1), null)))
+                .isInstanceOf(IntervaloDataInvalidoException.class);
+
+        assertThatThrownBy(() -> contaService.totalPago(new PeriodoFiltro(null, null)))
+                .isInstanceOf(IntervaloDataInvalidoException.class);
+
+        verify(contaRepository, never()).totalPago(any());
     }
 
 }
