@@ -32,4 +32,14 @@ class ArmazenamentoArquivoImportacaoLocal implements ArmazenamentoArquivoImporta
         }
     }
 
+    @Override
+    public InputStream abrir(String caminhoArquivo) {
+        try {
+            return Files.newInputStream(Path.of(caminhoArquivo));
+        } catch (IOException e) {
+            throw new ArmazenamentoArquivoException(
+                    String.format("Falha ao abrir arquivo: %s", caminhoArquivo), e);
+        }
+    }
+
 }

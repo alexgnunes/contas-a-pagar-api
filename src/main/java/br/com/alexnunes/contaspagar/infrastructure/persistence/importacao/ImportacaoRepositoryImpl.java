@@ -4,6 +4,8 @@ import br.com.alexnunes.contaspagar.domain.importacao.Importacao;
 import br.com.alexnunes.contaspagar.domain.importacao.ImportacaoRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 class ImportacaoRepositoryImpl implements ImportacaoRepository {
 
@@ -16,6 +18,11 @@ class ImportacaoRepositoryImpl implements ImportacaoRepository {
     @Override
     public Importacao salvar(Importacao importacao) {
         return jpaRepository.save(importacao);
+    }
+
+    @Override
+    public Optional<Importacao> buscarPorProtocolo(String protocolo) {
+        return jpaRepository.findByProtocolo(protocolo);
     }
 
 }

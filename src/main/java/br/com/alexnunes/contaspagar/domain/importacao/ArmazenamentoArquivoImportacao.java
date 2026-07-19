@@ -6,4 +6,6 @@ public interface ArmazenamentoArquivoImportacao {
 
     String salvar(InputStream conteudo, String nomeArquivo);
 
+    InputStream abrir(String caminhoArquivo);
+
 }

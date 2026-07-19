@@ -33,7 +33,7 @@ class ContaRepositoryImplTest {
     @Test
     void deveSalvarEBuscarPorId() {
         Fornecedor fornecedor = entityManager.persist(new Fornecedor("Fornecedor Teste"));
-        Conta conta = new Conta("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10), fornecedor);
+        Conta conta = Conta.criarPendente("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10), fornecedor);
 
         Conta salva = contaRepository.salvar(conta);
 
@@ -56,7 +56,7 @@ class ContaRepositoryImplTest {
     void deveExcluir() {
         Fornecedor fornecedor = entityManager.persist(new Fornecedor("Fornecedor Teste"));
         Conta conta = contaRepository.salvar(
-                new Conta("Internet", new BigDecimal("120.50"), LocalDate.of(2026, 8, 15), fornecedor));
+                Conta.criarPendente("Internet", new BigDecimal("120.50"), LocalDate.of(2026, 8, 15), fornecedor));
 
         contaRepository.excluir(conta);
 
@@ -66,8 +66,8 @@ class ContaRepositoryImplTest {
     @Test
     void devePesquisarComFiltroDeDescricaoEData() {
         Fornecedor fornecedor = entityManager.persist(new Fornecedor("Fornecedor Teste"));
-        contaRepository.salvar(new Conta("Energia Julho", new BigDecimal("350.00"), LocalDate.of(2026, 7, 10), fornecedor));
-        contaRepository.salvar(new Conta("Internet Agosto", new BigDecimal("120.50"), LocalDate.of(2026, 8, 15), fornecedor));
+        contaRepository.salvar(Conta.criarPendente("Energia Julho", new BigDecimal("350.00"), LocalDate.of(2026, 7, 10), fornecedor));
+        contaRepository.salvar(Conta.criarPendente("Internet Agosto", new BigDecimal("120.50"), LocalDate.of(2026, 8, 15), fornecedor));
 
         Page<Conta> porDescricao = contaRepository.pesquisar("energia", new PeriodoFiltro(null, null),
                 PageRequest.of(0, 10));
@@ -89,14 +89,14 @@ class ContaRepositoryImplTest {
         LocalDate hoje = LocalDate.now();
 
         Conta paga = contaRepository.salvar(
-                new Conta("Energia", new BigDecimal("300.00"), hoje.minusDays(5), fornecedor));
+                Conta.criarPendente("Energia", new BigDecimal("300.00"), hoje.minusDays(5), fornecedor));
         paga.pagar();
         contaRepository.salvar(paga);
 
-        contaRepository.salvar(new Conta("Internet", new BigDecimal("120.00"), hoje.minusDays(3), fornecedor));
+        contaRepository.salvar(Conta.criarPendente("Internet", new BigDecimal("120.00"), hoje.minusDays(3), fornecedor));
 
         Conta cancelada = contaRepository.salvar(
-                new Conta("Agua", new BigDecimal("80.00"), hoje.minusDays(1), fornecedor));
+                Conta.criarPendente("Agua", new BigDecimal("80.00"), hoje.minusDays(1), fornecedor));
         cancelada.cancelar();
         contaRepository.salvar(cancelada);
 

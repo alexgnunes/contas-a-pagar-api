@@ -33,7 +33,21 @@ public class ContaService {
     @Transactional
     public Conta criar(String descricao, BigDecimal valor, LocalDate dataVencimento, UUID fornecedorId) {
         Fornecedor fornecedor = buscarFornecedor(fornecedorId);
-        Conta conta = new Conta(descricao, valor, dataVencimento, fornecedor);
+        Conta conta = Conta.criarPendente(descricao, valor, dataVencimento, fornecedor);
+        return contaRepository.salvar(conta);
+    }
+
+    @Transactional
+    public Conta criar(String descricao, BigDecimal valor, LocalDate dataVencimento, UUID fornecedorId,
+                        Situacao situacao, LocalDate dataPagamento) {
+        Fornecedor fornecedor = buscarFornecedor(fornecedorId);
+
+        Conta conta = switch (situacao) {
+            case PENDENTE -> Conta.criarPendente(descricao, valor, dataVencimento, fornecedor);
+            case PAGO -> Conta.criarPaga(descricao, valor, dataVencimento, dataPagamento, fornecedor);
+            case CANCELADO -> Conta.criarCancelada(descricao, valor, dataVencimento, fornecedor);
+        };
+
         return contaRepository.salvar(conta);
     }
 

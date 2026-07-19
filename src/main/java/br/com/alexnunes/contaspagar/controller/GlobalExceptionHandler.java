@@ -9,6 +9,7 @@ import br.com.alexnunes.contaspagar.domain.fornecedor.exception.FornecedorComCon
 import br.com.alexnunes.contaspagar.domain.fornecedor.exception.FornecedorNaoEncontradoException;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ArmazenamentoArquivoException;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ArquivoVazioException;
+import br.com.alexnunes.contaspagar.domain.importacao.exception.ImportacaoNaoEncontradaException;
 import br.com.alexnunes.contaspagar.infrastructure.web.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -100,6 +101,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleArmazenamentoArquivo(ArmazenamentoArquivoException ex,
                                                                      HttpServletRequest request) {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ImportacaoNaoEncontradaException.class)
+    public ResponseEntity<ErrorResponse> handleImportacaoNaoEncontrada(ImportacaoNaoEncontradaException ex,
+                                                                        HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

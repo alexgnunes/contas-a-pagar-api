@@ -35,10 +35,14 @@ public class ImportacaoErro {
     @Column(nullable = false)
     private String mensagem;
 
-    public ImportacaoErro(Importacao importacao, int linha, String mensagem) {
+    @Column(name = "linha_original", nullable = false)
+    private String linhaOriginal;
+
+    public ImportacaoErro(Importacao importacao, int linha, String mensagem, String linhaOriginal) {
         this.importacao = importacao;
         this.linha = linha;
         this.mensagem = mensagem;
+        this.linhaOriginal = linhaOriginal;
     }
 
     @Override

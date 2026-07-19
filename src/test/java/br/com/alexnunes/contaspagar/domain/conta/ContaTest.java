@@ -1,6 +1,7 @@
 package br.com.alexnunes.contaspagar.domain.conta;
 
 import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
+import br.com.alexnunes.contaspagar.domain.conta.exception.DataPagamentoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.SituacaoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ValorInvalidoException;
 import br.com.alexnunes.contaspagar.domain.fornecedor.Fornecedor;
@@ -17,7 +18,7 @@ class ContaTest {
     private final Fornecedor fornecedor = new Fornecedor("Fornecedor Teste");
 
     private Conta novaConta() {
-        return new Conta("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10), fornecedor);
+        return Conta.criarPendente("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10), fornecedor);
     }
 
     @Test
@@ -30,20 +31,56 @@ class ContaTest {
 
     @Test
     void naoDeveCriarContaComValorZero() {
-        assertThatThrownBy(() -> new Conta("Energia", BigDecimal.ZERO, LocalDate.now(), fornecedor))
+        assertThatThrownBy(() -> Conta.criarPendente("Energia", BigDecimal.ZERO, LocalDate.now(), fornecedor))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test
     void naoDeveCriarContaComValorNegativo() {
-        assertThatThrownBy(() -> new Conta("Energia", new BigDecimal("-10.00"), LocalDate.now(), fornecedor))
+        assertThatThrownBy(() -> Conta.criarPendente("Energia", new BigDecimal("-10.00"), LocalDate.now(), fornecedor))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test
     void naoDeveCriarContaComValorNulo() {
-        assertThatThrownBy(() -> new Conta("Energia", null, LocalDate.now(), fornecedor))
+        assertThatThrownBy(() -> Conta.criarPendente("Energia", null, LocalDate.now(), fornecedor))
                 .isInstanceOf(ValorInvalidoException.class);
+    }
+
+    @Test
+    void deveNascerPagaComDataPagamentoInformada() {
+        LocalDate dataPagamento = LocalDate.now().minusDays(2);
+
+        Conta conta = Conta.criarPaga("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
+                dataPagamento, fornecedor);
+
+        assertThat(conta.getSituacao()).isEqualTo(Situacao.PAGO);
+        assertThat(conta.getDataPagamento()).isEqualTo(dataPagamento);
+    }
+
+    @Test
+    void naoDeveNascerPagaSemDataPagamento() {
+        assertThatThrownBy(() -> Conta.criarPaga("Energia", new BigDecimal("350.00"),
+                LocalDate.of(2026, 8, 10), null, fornecedor))
+                .isInstanceOf(DataPagamentoInvalidaException.class);
+    }
+
+    @Test
+    void naoDeveNascerPagaComDataPagamentoFutura() {
+        LocalDate dataFutura = LocalDate.now().plusDays(1);
+
+        assertThatThrownBy(() -> Conta.criarPaga("Energia", new BigDecimal("350.00"),
+                LocalDate.of(2026, 8, 10), dataFutura, fornecedor))
+                .isInstanceOf(DataPagamentoInvalidaException.class);
+    }
+
+    @Test
+    void deveNascerCanceladaSemDataPagamento() {
+        Conta conta = Conta.criarCancelada("Assinatura antiga", new BigDecimal("89.90"),
+                LocalDate.of(2026, 5, 10), fornecedor);
+
+        assertThat(conta.getSituacao()).isEqualTo(Situacao.CANCELADO);
+        assertThat(conta.getDataPagamento()).isNull();
     }
 
     @Test

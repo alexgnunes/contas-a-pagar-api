@@ -1,6 +1,7 @@
 package br.com.alexnunes.contaspagar.domain.conta;
 
 import br.com.alexnunes.contaspagar.domain.conta.enums.Situacao;
+import br.com.alexnunes.contaspagar.domain.conta.exception.DataPagamentoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.SituacaoInvalidaException;
 import br.com.alexnunes.contaspagar.domain.conta.exception.ValorInvalidoException;
 import br.com.alexnunes.contaspagar.domain.fornecedor.Fornecedor;
@@ -53,18 +54,45 @@ public class Conta {
     @JoinColumn(name = "fornecedor_id", nullable = false)
     private Fornecedor fornecedor;
 
-    public Conta(String descricao, BigDecimal valor, LocalDate dataVencimento, Fornecedor fornecedor) {
+    private Conta(String descricao, BigDecimal valor, LocalDate dataVencimento, Fornecedor fornecedor,
+                  Situacao situacao, LocalDate dataPagamento) {
         validarValor(valor);
         this.descricao = descricao;
         this.valor = valor;
         this.dataVencimento = dataVencimento;
         this.fornecedor = fornecedor;
-        this.situacao = Situacao.PENDENTE;
+        this.situacao = situacao;
+        this.dataPagamento = dataPagamento;
+    }
+
+    public static Conta criarPendente(String descricao, BigDecimal valor, LocalDate dataVencimento,
+                                       Fornecedor fornecedor) {
+        return new Conta(descricao, valor, dataVencimento, fornecedor, Situacao.PENDENTE, null);
+    }
+
+    public static Conta criarPaga(String descricao, BigDecimal valor, LocalDate dataVencimento,
+                                   LocalDate dataPagamento, Fornecedor fornecedor) {
+        validarDataPagamento(dataPagamento);
+        return new Conta(descricao, valor, dataVencimento, fornecedor, Situacao.PAGO, dataPagamento);
+    }
+
+    public static Conta criarCancelada(String descricao, BigDecimal valor, LocalDate dataVencimento,
+                                        Fornecedor fornecedor) {
+        return new Conta(descricao, valor, dataVencimento, fornecedor, Situacao.CANCELADO, null);
     }
 
     private static void validarValor(BigDecimal valor) {
         if (valor == null || valor.signum() <= 0) {
             throw new ValorInvalidoException("Valor deve ser positivo");
+        }
+    }
+
+    private static void validarDataPagamento(LocalDate dataPagamento) {
+        if (dataPagamento == null) {
+            throw new DataPagamentoInvalidaException("dataPagamento é obrigatória para conta paga");
+        }
+        if (dataPagamento.isAfter(LocalDate.now())) {
+            throw new DataPagamentoInvalidaException("dataPagamento não pode ser posterior à data atual");
         }
     }
 

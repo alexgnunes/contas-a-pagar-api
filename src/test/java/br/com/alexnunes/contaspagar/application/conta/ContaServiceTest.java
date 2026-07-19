@@ -56,7 +56,7 @@ class ContaServiceTest {
     }
 
     private Conta novaConta() {
-        return new Conta("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10), fornecedor);
+        return Conta.criarPendente("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10), fornecedor);
     }
 
     @Test
@@ -69,6 +69,43 @@ class ContaServiceTest {
 
         assertThat(conta.getDescricao()).isEqualTo("Energia");
         assertThat(conta.getSituacao()).isEqualTo(Situacao.PENDENTE);
+    }
+
+    @Test
+    void deveCriarContaPendenteViaOverloadDeImportacaoQuandoSituacaoPendente() {
+        stubSalvarRetornandoOMesmo();
+        when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
+
+        Conta conta = contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
+                fornecedor.getId(), Situacao.PENDENTE, null);
+
+        assertThat(conta.getSituacao()).isEqualTo(Situacao.PENDENTE);
+        assertThat(conta.getDataPagamento()).isNull();
+    }
+
+    @Test
+    void deveCriarContaPagaViaOverloadDeImportacaoQuandoSituacaoPaga() {
+        stubSalvarRetornandoOMesmo();
+        when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
+        LocalDate dataPagamento = LocalDate.now().minusDays(1);
+
+        Conta conta = contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
+                fornecedor.getId(), Situacao.PAGO, dataPagamento);
+
+        assertThat(conta.getSituacao()).isEqualTo(Situacao.PAGO);
+        assertThat(conta.getDataPagamento()).isEqualTo(dataPagamento);
+    }
+
+    @Test
+    void deveCriarContaCanceladaViaOverloadDeImportacaoQuandoSituacaoCancelada() {
+        stubSalvarRetornandoOMesmo();
+        when(fornecedorRepository.buscarPorId(fornecedor.getId())).thenReturn(Optional.of(fornecedor));
+
+        Conta conta = contaService.criar("Energia", new BigDecimal("350.00"), LocalDate.of(2026, 8, 10),
+                fornecedor.getId(), Situacao.CANCELADO, null);
+
+        assertThat(conta.getSituacao()).isEqualTo(Situacao.CANCELADO);
+        assertThat(conta.getDataPagamento()).isNull();
     }
 
     @Test
