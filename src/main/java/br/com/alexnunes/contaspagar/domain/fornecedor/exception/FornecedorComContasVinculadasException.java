@@ -5,7 +5,7 @@ import java.util.UUID;
 public class FornecedorComContasVinculadasException extends RuntimeException {
 
     public FornecedorComContasVinculadasException(UUID id) {
-        super("Fornecedor possui contas vinculadas e não pode ser excluído: " + id);
+        super(String.format("Fornecedor possui contas vinculadas e não pode ser excluído: %s", id));
     }
 
 }

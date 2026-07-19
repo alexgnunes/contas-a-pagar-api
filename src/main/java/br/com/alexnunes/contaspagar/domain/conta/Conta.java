@@ -100,6 +100,16 @@ public class Conta {
         this.fornecedor = novoFornecedor;
     }
 
+    public void alterarDescricao(String novaDescricao) {
+        garantirPendente("Descrição só pode ser alterada enquanto a conta estiver pendente");
+        this.descricao = novaDescricao;
+    }
+
+    public void alterarDataVencimento(LocalDate novaDataVencimento) {
+        garantirPendente("Data de vencimento só pode ser alterada enquanto a conta estiver pendente");
+        this.dataVencimento = novaDataVencimento;
+    }
+
     private void garantirPendente(String mensagem) {
         if (situacao != Situacao.PENDENTE) {
             throw new SituacaoInvalidaException(mensagem);

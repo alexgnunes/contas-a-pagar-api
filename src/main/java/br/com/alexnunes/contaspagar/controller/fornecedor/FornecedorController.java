@@ -36,7 +36,7 @@ public class FornecedorController {
     @PostMapping
     public ResponseEntity<FornecedorResponse> criar(@Valid @RequestBody FornecedorRequest request) {
         Fornecedor fornecedor = fornecedorService.criar(request.nome());
-        return ResponseEntity.created(URI.create("/fornecedores/" + fornecedor.getId()))
+        return ResponseEntity.created(URI.create(String.format("/fornecedores/%s", fornecedor.getId())))
                 .body(fornecedorMapper.toResponse(fornecedor));
     }
 

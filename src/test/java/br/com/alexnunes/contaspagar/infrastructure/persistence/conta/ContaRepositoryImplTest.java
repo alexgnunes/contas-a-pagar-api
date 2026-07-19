@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -58,6 +60,25 @@ class ContaRepositoryImplTest {
         contaRepository.excluir(conta);
 
         assertThat(contaRepository.buscarPorId(conta.getId())).isEmpty();
+    }
+
+    @Test
+    void devePesquisarComFiltroDeDescricaoEData() {
+        Fornecedor fornecedor = entityManager.persist(new Fornecedor("Fornecedor Teste"));
+        contaRepository.salvar(new Conta("Energia Julho", new BigDecimal("350.00"), LocalDate.of(2026, 7, 10), fornecedor));
+        contaRepository.salvar(new Conta("Internet Agosto", new BigDecimal("120.50"), LocalDate.of(2026, 8, 15), fornecedor));
+
+        Page<Conta> porDescricao = contaRepository.pesquisar("energia", null, null, PageRequest.of(0, 10));
+        assertThat(porDescricao.getContent()).hasSize(1);
+        assertThat(porDescricao.getContent().get(0).getDescricao()).isEqualTo("Energia Julho");
+
+        Page<Conta> porPeriodo = contaRepository.pesquisar(null, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31),
+                PageRequest.of(0, 10));
+        assertThat(porPeriodo.getContent()).hasSize(1);
+        assertThat(porPeriodo.getContent().get(0).getDescricao()).isEqualTo("Internet Agosto");
+
+        Page<Conta> semFiltro = contaRepository.pesquisar(null, null, null, PageRequest.of(0, 10));
+        assertThat(semFiltro.getTotalElements()).isEqualTo(2);
     }
 
 }
