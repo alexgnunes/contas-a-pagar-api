@@ -4,6 +4,7 @@ import br.com.alexnunes.contaspagar.application.fornecedor.FornecedorService;
 import br.com.alexnunes.contaspagar.controller.fornecedor.dto.FornecedorRequest;
 import br.com.alexnunes.contaspagar.controller.fornecedor.dto.FornecedorResponse;
 import br.com.alexnunes.contaspagar.domain.fornecedor.Fornecedor;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,8 @@ public class FornecedorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<FornecedorResponse> buscarPorId(@PathVariable UUID id) {
+    public ResponseEntity<FornecedorResponse> buscarPorId(
+            @Parameter(example = "11111111-1111-1111-1111-111111111111") @PathVariable UUID id) {
         Fornecedor fornecedor = fornecedorService.buscarPorId(id);
         return ResponseEntity.ok(fornecedorMapper.toResponse(fornecedor));
     }
@@ -55,13 +57,16 @@ public class FornecedorController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FornecedorResponse> atualizar(@PathVariable UUID id, @Valid @RequestBody FornecedorRequest request) {
+    public ResponseEntity<FornecedorResponse> atualizar(
+            @Parameter(example = "11111111-1111-1111-1111-111111111111") @PathVariable UUID id,
+            @Valid @RequestBody FornecedorRequest request) {
         Fornecedor fornecedor = fornecedorService.atualizar(id, request.nome());
         return ResponseEntity.ok(fornecedorMapper.toResponse(fornecedor));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(@PathVariable UUID id) {
+    public ResponseEntity<Void> excluir(
+            @Parameter(example = "11111111-1111-1111-1111-111111111111") @PathVariable UUID id) {
         fornecedorService.excluir(id);
         return ResponseEntity.noContent().build();
     }
