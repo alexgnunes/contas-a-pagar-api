@@ -7,19 +7,27 @@ import br.com.alexnunes.contaspagar.domain.conta.exception.SituacaoInvalidaExcep
 import br.com.alexnunes.contaspagar.domain.conta.exception.ValorInvalidoException;
 import br.com.alexnunes.contaspagar.domain.fornecedor.exception.FornecedorComContasVinculadasException;
 import br.com.alexnunes.contaspagar.domain.fornecedor.exception.FornecedorNaoEncontradoException;
+import br.com.alexnunes.contaspagar.domain.importacao.exception.ArmazenamentoArquivoException;
+import br.com.alexnunes.contaspagar.domain.importacao.exception.ArquivoVazioException;
 import br.com.alexnunes.contaspagar.infrastructure.web.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(CredenciaisInvalidasException.class)
     public ResponseEntity<ErrorResponse> handleCredenciaisInvalidas(CredenciaisInvalidasException ex,
@@ -74,6 +82,37 @@ public class GlobalExceptionHandler {
                                                                          HttpServletRequest request) {
         String mensagem = String.format("Parâmetro '%s' possui valor inválido: %s", ex.getName(), ex.getValue());
         return build(HttpStatus.BAD_REQUEST, mensagem, request);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleParteObrigatoriaAusente(MissingServletRequestPartException ex,
+                                                                        HttpServletRequest request) {
+        String mensagem = String.format("Parte obrigatória ausente: %s", ex.getRequestPartName());
+        return build(HttpStatus.BAD_REQUEST, mensagem, request);
+    }
+
+    @ExceptionHandler(ArquivoVazioException.class)
+    public ResponseEntity<ErrorResponse> handleArquivoVazio(ArquivoVazioException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ArmazenamentoArquivoException.class)
+    public ResponseEntity<ErrorResponse> handleArmazenamentoArquivo(ArmazenamentoArquivoException ex,
+                                                                     HttpServletRequest request) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleViolacaoIntegridade(DataIntegrityViolationException ex,
+                                                                    HttpServletRequest request) {
+        log.warn("Violação de integridade de dados", ex);
+        return build(HttpStatus.CONFLICT, "Conflito ao persistir os dados da requisição", request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleErroInesperado(Exception ex, HttpServletRequest request) {
+        log.error("Erro inesperado", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno inesperado", request);
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request) {

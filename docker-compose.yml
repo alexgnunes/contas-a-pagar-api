@@ -47,6 +47,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?defina ADMIN_PASSWORD_HASH no .env}
+    volumes:
+      - importacoes_data:/app/data/importacoes
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,3 +57,4 @@ services:
 
 volumes:
   postgres_data:
+  importacoes_data:

@@ -30,6 +30,8 @@ spring:
     password: ${RABBITMQ_PASSWORD}
 
 app:
+  importacao:
+    diretorio: ${IMPORTACAO_DIRETORIO:/app/data/importacoes}
   rabbitmq:
     exchange: contas-pagar.exchange
     queue: fila.importacao
