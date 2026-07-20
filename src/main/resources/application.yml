@@ -29,6 +29,12 @@ spring:
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD}
 
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 10
+
 app:
   importacao:
     diretorio: ${IMPORTACAO_DIRETORIO:/app/data/importacoes}
