@@ -3,6 +3,8 @@ package br.com.alexnunes.contaspagar.controller.auth;
 import br.com.alexnunes.contaspagar.application.auth.AuthService;
 import br.com.alexnunes.contaspagar.controller.auth.dto.LoginRequest;
 import br.com.alexnunes.contaspagar.controller.auth.dto.LoginResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +27,10 @@ public class AuthController {
 
     @PostMapping("/login")
     @SecurityRequirements
+    @Operation(summary = "Autentica com usuário/senha e retorna um token JWT")
+    @ApiResponse(responseCode = "200", description = "Autenticado com sucesso")
+    @ApiResponse(responseCode = "400", description = "Corpo da requisição inválido (usuário/senha ausentes)")
+    @ApiResponse(responseCode = "401", description = "Usuário ou senha inválidos")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         String token = authService.autenticar(request.usuario(), request.senha());
         return ResponseEntity.ok(new LoginResponse(token));

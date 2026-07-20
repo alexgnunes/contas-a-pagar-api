@@ -6,6 +6,8 @@ import br.com.alexnunes.contaspagar.controller.importacao.dto.ImportacaoStatusRe
 import br.com.alexnunes.contaspagar.domain.importacao.Importacao;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ArmazenamentoArquivoException;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ArquivoVazioException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -35,6 +37,9 @@ public class ImportacaoController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Inicia a importação assíncrona de contas via CSV (processamento em background pelo RabbitMQ)")
+    @ApiResponse(responseCode = "202", description = "Importação aceita e enfileirada; consultar status pelo protocolo")
+    @ApiResponse(responseCode = "400", description = "Arquivo ausente ou vazio")
     public ResponseEntity<ImportacaoResponse> importar(@RequestParam("arquivo") MultipartFile arquivo) {
         validarArquivo(arquivo);
         String protocolo = importacaoService.iniciar(lerConteudo(arquivo), arquivo.getOriginalFilename());
@@ -42,6 +47,9 @@ public class ImportacaoController {
     }
 
     @GetMapping("/{protocolo}")
+    @Operation(summary = "Consulta o status de uma importação pelo protocolo")
+    @ApiResponse(responseCode = "200", description = "Status retornado com sucesso")
+    @ApiResponse(responseCode = "404", description = "Protocolo de importação não encontrado")
     public ResponseEntity<ImportacaoStatusResponse> consultar(@PathVariable String protocolo) {
         Importacao importacao = importacaoService.consultarStatus(protocolo);
         String downloadErros = importacao.getFalhas() > 0
@@ -59,6 +67,9 @@ public class ImportacaoController {
     }
 
     @GetMapping(value = "/{protocolo}/erros", produces = "text/csv")
+    @Operation(summary = "Baixa o CSV com as linhas que falharam na importação, pronto para corrigir e reimportar")
+    @ApiResponse(responseCode = "200", description = "CSV de erros gerado com sucesso")
+    @ApiResponse(responseCode = "404", description = "Protocolo de importação não encontrado")
     public ResponseEntity<byte[]> baixarErros(@PathVariable String protocolo) {
         String csv = importacaoService.gerarCsvErros(protocolo);
         String nomeArquivo = String.format("erros_importacao_%s.csv", protocolo);

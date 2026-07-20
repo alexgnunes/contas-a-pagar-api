@@ -4,7 +4,9 @@ import br.com.alexnunes.contaspagar.application.fornecedor.FornecedorService;
 import br.com.alexnunes.contaspagar.controller.fornecedor.dto.FornecedorRequest;
 import br.com.alexnunes.contaspagar.controller.fornecedor.dto.FornecedorResponse;
 import br.com.alexnunes.contaspagar.domain.fornecedor.Fornecedor;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,9 @@ public class FornecedorController {
     }
 
     @PostMapping
+    @Operation(summary = "Cria um novo fornecedor")
+    @ApiResponse(responseCode = "201", description = "Fornecedor criado com sucesso")
+    @ApiResponse(responseCode = "400", description = "Corpo da requisição inválido (nome ausente/vazio)")
     public ResponseEntity<FornecedorResponse> criar(@Valid @RequestBody FornecedorRequest request) {
         Fornecedor fornecedor = fornecedorService.criar(request.nome());
         return ResponseEntity.created(URI.create(String.format("/fornecedores/%s", fornecedor.getId())))
@@ -42,6 +47,9 @@ public class FornecedorController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Busca um fornecedor pelo id")
+    @ApiResponse(responseCode = "200", description = "Fornecedor encontrado")
+    @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
     public ResponseEntity<FornecedorResponse> buscarPorId(
             @Parameter(example = "11111111-1111-1111-1111-111111111111") @PathVariable UUID id) {
         Fornecedor fornecedor = fornecedorService.buscarPorId(id);
@@ -49,6 +57,8 @@ public class FornecedorController {
     }
 
     @GetMapping
+    @Operation(summary = "Lista todos os fornecedores cadastrados")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     public ResponseEntity<List<FornecedorResponse>> listarTodos() {
         List<FornecedorResponse> resposta = fornecedorService.listarTodos().stream()
                 .map(fornecedorMapper::toResponse)
@@ -57,6 +67,10 @@ public class FornecedorController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Atualiza o nome de um fornecedor")
+    @ApiResponse(responseCode = "200", description = "Fornecedor atualizado com sucesso")
+    @ApiResponse(responseCode = "400", description = "Corpo da requisição inválido (nome ausente/vazio)")
+    @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
     public ResponseEntity<FornecedorResponse> atualizar(
             @Parameter(example = "11111111-1111-1111-1111-111111111111") @PathVariable UUID id,
             @Valid @RequestBody FornecedorRequest request) {
@@ -65,6 +79,10 @@ public class FornecedorController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Exclui um fornecedor")
+    @ApiResponse(responseCode = "204", description = "Fornecedor excluído com sucesso")
+    @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
+    @ApiResponse(responseCode = "409", description = "Fornecedor possui contas vinculadas e não pode ser excluído")
     public ResponseEntity<Void> excluir(
             @Parameter(example = "11111111-1111-1111-1111-111111111111") @PathVariable UUID id) {
         fornecedorService.excluir(id);
