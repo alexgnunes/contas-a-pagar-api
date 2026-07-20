@@ -9,6 +9,7 @@ import br.com.alexnunes.contaspagar.domain.importacao.ImportacaoRepository;
 import br.com.alexnunes.contaspagar.domain.importacao.LeitorCsvImportacao;
 import br.com.alexnunes.contaspagar.domain.importacao.LinhaCsvImportacao;
 import br.com.alexnunes.contaspagar.domain.importacao.PublicadorImportacao;
+import br.com.alexnunes.contaspagar.domain.importacao.enums.ImportacaoStatus;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.CsvInvalidoException;
 import br.com.alexnunes.contaspagar.domain.importacao.exception.ImportacaoNaoEncontradaException;
 import org.slf4j.Logger;
@@ -61,6 +62,12 @@ public class ImportacaoService {
         Importacao importacao = importacaoRepository.buscarPorProtocolo(protocolo).orElse(null);
         if (importacao == null) {
             log.error("Importação {} não encontrada, mensagem descartada", protocolo);
+            return;
+        }
+
+        if (importacao.getStatus() != ImportacaoStatus.PROCESSANDO) {
+            log.warn("Importação {} já está em status final ({}), mensagem redelivered descartada", protocolo,
+                    importacao.getStatus());
             return;
         }
 

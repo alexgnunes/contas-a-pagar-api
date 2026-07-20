@@ -162,6 +162,19 @@ class ImportacaoServiceTest {
     }
 
     @Test
+    void deveDescartarMensagemRedeliveredQuandoImportacaoJaEstaEmStatusFinal() {
+        Importacao importacao = new Importacao("ABC123", "/dados/arquivo.csv");
+        importacao.concluir(2, 2, 0);
+        when(importacaoRepository.buscarPorProtocolo("ABC123")).thenReturn(Optional.of(importacao));
+
+        importacaoService.processarMensagem("ABC123");
+
+        verify(armazenamentoArquivo, never()).abrir(any());
+        verify(contaImportacaoService, never()).processarLinha(any());
+        verify(importacaoRepository, never()).salvar(any());
+    }
+
+    @Test
     void deveMarcarComoFalhouQuandoConcluirLancaExcecaoInesperada() {
         Importacao importacao = new Importacao("ABC123", "/dados/arquivo.csv");
         when(importacaoRepository.buscarPorProtocolo("ABC123")).thenReturn(Optional.of(importacao));
