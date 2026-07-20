@@ -5,5 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
-public record AlterarSituacaoRequest(@NotNull Situacao situacao, LocalDate dataPagamento) {
+public record AlterarSituacaoRequest(@NotNull(message = "é obrigatória") Situacao situacao,
+                                      LocalDate dataPagamento) {
 }

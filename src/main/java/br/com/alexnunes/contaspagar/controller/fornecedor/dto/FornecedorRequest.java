@@ -4,5 +4,5 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record FornecedorRequest(
-        @NotBlank @Size(max = 255) String nome) {
+        @NotBlank(message = "não pode estar em branco") @Size(max = 255, message = "deve ter no máximo 255 caracteres") String nome) {
 }
