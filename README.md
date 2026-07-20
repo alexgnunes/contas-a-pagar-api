@@ -64,7 +64,7 @@ Pré-requisitos: Git, Docker e Docker Compose.
    RABBITMQ_PASSWORD=admin
    JWT_SECRET=HNeGcbOVb7PSrvAY4eC6hMuHarITPN8HZmdAZ1iZmlQ=
    ADMIN_USER=admin
-   ADMIN_PASSWORD_HASH=$2a$10$gBLqo2PG9CEszx9.vCvPt.phNcRDgk6R74sPHKlujrsTxUdyzWFjC
+   ADMIN_PASSWORD_HASH=$$2a$$10$$gBLqo2PG9CEszx9.vCvPt.phNcRDgk6R74sPHKlujrsTxUdyzWFjC
    EOF
    ```
    O `.env` precisa ficar **na raiz de `contas-a-pagar-api/`**, a mesma
@@ -76,13 +76,20 @@ Pré-requisitos: Git, Docker e Docker Compose.
    > **Valores de avaliação/teste local: nunca usar em produção real.**
    > `ADMIN_PASSWORD_HASH` acima é o hash BCrypt de `admin123` (login:
    > `admin` / `admin123`), gerado com o mesmo `BCryptPasswordEncoder` que
-   > a aplicação usa. `JWT_SECRET` é uma chave Base64 de 32 bytes gerada
-   > com `openssl rand -base64 32`. O `JwtService` decodifica esse valor
-   > como Base64 (`Keys.hmacShaKeyFor`), então **não pode ser um texto
-   > qualquer**, precisa ser Base64 válido de pelo menos 32 bytes
-   > decodificados. Ambos os valores foram gerados e testados
-   > (gera + valida token, hash + `matches`) com as classes reais do
-   > projeto antes de entrar aqui. Se preferir não usar valores prontos,
+   > a aplicação usa. **Os `$` do hash estão duplicados (`$$`) de propósito**:
+   > o Docker Compose interpola o próprio arquivo `.env`, e um `$` sozinho
+   > (ex: `$2a`) é lido como referência a uma variável `${2a}`, que não
+   > existe, e é silenciosamente substituída por vazio, corrompendo o hash
+   > (o login passa a falhar com `401`, e o log mostra
+   > `BCryptPasswordEncoder: Encoded password does not look like BCrypt`).
+   > `$$` escapa o `$` literal. Se for gerar seu próprio hash BCrypt pra
+   > colocar no `.env`, lembre de escapar todo `$` como `$$`. `JWT_SECRET`
+   > é uma chave Base64 de 32 bytes gerada com `openssl rand -base64 32`. O
+   > `JwtService` decodifica esse valor como Base64 (`Keys.hmacShaKeyFor`),
+   > então **não pode ser um texto qualquer**, precisa ser Base64 válido de
+   > pelo menos 32 bytes decodificados. Ambos os valores foram gerados e
+   > testados (gera + valida token, hash + `matches`) com as classes reais
+   > do projeto antes de entrar aqui. Se preferir não usar valores prontos,
    > copie `.env.example` para `.env` e preencha manualmente. O
    > `docker-compose.yml` não tem defaults inseguros, então sem preencher
    > essas variáveis o `docker compose up` falha ao subir.
@@ -98,9 +105,12 @@ Pré-requisitos: Git, Docker e Docker Compose.
    exemplo) e deixa tudo pronto para uso.
 
 4. Acessar o Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-   (liberado sem autenticação). Logar em `/auth/login` com `admin` /
-   `admin123` (ver seção "Autenticação" abaixo) para obter o token e
-   testar os demais endpoints.
+   (liberado sem autenticação). Logar em `/auth/login` (ver seção
+   "Autenticação" abaixo) para obter o token e testar os demais
+   endpoints. `admin` / `admin123` **só funciona se o `.env` foi criado
+   com o bloco pronto do passo 2**; se você preencheu `ADMIN_USER`/
+   `ADMIN_PASSWORD_HASH` com valores próprios, use as credenciais que
+   você definiu.
 
    RabbitMQ Management UI: [http://localhost:15672](http://localhost:15672)
    (login com `RABBITMQ_USER`/`RABBITMQ_PASSWORD` do `.env`, ou
@@ -126,6 +136,22 @@ Content-Type: application/json
 
 (Credenciais válidas se o `.env` foi criado com o bloco pronto da seção
 "Como executar" acima; senão, use o usuário/senha que você configurou.)
+
+### Gerando seu próprio `ADMIN_PASSWORD_HASH`
+
+Não existe usuário fixo "de fábrica": `ADMIN_USER`/`ADMIN_PASSWORD_HASH`
+são lidos do `.env`, e a senha nunca fica em texto puro, só o hash
+BCrypt. Pra gerar um hash da sua própria senha, use qualquer gerador de
+hash BCrypt online (ex: [bcrypt-generator.com](https://bcrypt-generator.com/),
+custo/rounds `10`) e copie o resultado pro `ADMIN_PASSWORD_HASH` no
+`.env`. Como é só uma senha de demonstração local (não é segredo de
+produção), não tem problema gerar num site externo.
+
+Copie a string retornada (formato `$2a$10$...`) para `ADMIN_PASSWORD_HASH`
+no `.env`, **escapando cada `$` como `$$`** (ver nota de aviso acima:
+sem isso o Docker Compose corrompe o hash). O `BCryptPasswordEncoder`
+usado pela aplicação aceita hashes com prefixo `$2a$`, `$2b$` ou `$2y$`
+igualmente, então qualquer gerador padrão de BCrypt funciona.
 
 Resposta:
 
@@ -300,7 +326,7 @@ motivo por trás de cada uma.
 - **DDD em camadas** (Controller → Application → Domain → Infrastructure),
   DTOs como Records, sem expor Entities nas APIs. Por quê: mantém as
   regras de negócio isoladas da infraestrutura, facilitando testes,
-  evolução e manutenção — trocar o banco ou o broker de mensagens não
+  evolução e manutenção: trocar o banco ou o broker de mensagens não
   deveria exigir tocar em regra de negócio.
 - **Validação em três camadas**: Bean Validation no DTO (contrato),
   regras de fluxo no Application Service (ex: fornecedor existe),
