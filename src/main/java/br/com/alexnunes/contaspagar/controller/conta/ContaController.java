@@ -2,6 +2,7 @@ package br.com.alexnunes.contaspagar.controller.conta;
 
 import br.com.alexnunes.contaspagar.application.conta.ContaService;
 import br.com.alexnunes.contaspagar.controller.conta.dto.AlterarSituacaoRequest;
+import br.com.alexnunes.contaspagar.controller.conta.dto.ContaAtualizarRequest;
 import br.com.alexnunes.contaspagar.controller.conta.dto.ContaRequest;
 import br.com.alexnunes.contaspagar.controller.conta.dto.ContaResponse;
 import br.com.alexnunes.contaspagar.domain.conta.Conta;
@@ -49,7 +50,7 @@ public class ContaController {
     }
 
     @PostMapping
-    @Operation(summary = "Cria uma nova conta a pagar (PENDENTE, PAGA ou CANCELADA)")
+    @Operation(summary = "Cria uma nova conta a pagar (PENDENTE, PAGO ou CANCELADO)")
     @ApiResponse(responseCode = "201", description = "Conta criada com sucesso")
     @ApiResponse(responseCode = "400",
             description = "Corpo da requisição inválido, ou dataPagamento incoerente com a situação informada")
@@ -57,6 +58,7 @@ public class ContaController {
     public ResponseEntity<ContaResponse> criar(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(examples = {
                     @ExampleObject(name = "Conta válida", value = ContaExemplos.CONTA_VALIDA),
+                    @ExampleObject(name = "Conta já paga", value = ContaExemplos.CONTA_JA_PAGA),
                     @ExampleObject(name = "Valor negativo", value = ContaExemplos.VALOR_NEGATIVO),
                     @ExampleObject(name = "Fornecedor inexistente", value = ContaExemplos.FORNECEDOR_INEXISTENTE)
             }))
@@ -73,6 +75,8 @@ public class ContaController {
     @ApiResponse(responseCode = "400", description = "Parâmetro de ordenação (sort) inválido")
     @Parameter(name = "sort", in = ParameterIn.QUERY, description = "Ordenação no formato propriedade,direção (asc|desc)",
             array = @ArraySchema(schema = @Schema(type = "string", example = "descricao,asc")))
+    @Parameter(name = "size", in = ParameterIn.QUERY,
+            description = "Tamanho da página (máximo: 10 — valores maiores são truncados automaticamente)")
     public ResponseEntity<Page<ContaResponse>> pesquisar(
             @RequestParam(required = false) String descricao,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataVencimentoInicial,
@@ -99,7 +103,7 @@ public class ContaController {
     @ApiResponse(responseCode = "400", description = "Corpo da requisição inválido")
     @ApiResponse(responseCode = "404", description = "Conta ou fornecedor não encontrado")
     @ApiResponse(responseCode = "409", description = "Conta não está mais pendente — alteração não permitida")
-    public ResponseEntity<ContaResponse> atualizar(@PathVariable UUID id, @Valid @RequestBody ContaRequest request) {
+    public ResponseEntity<ContaResponse> atualizar(@PathVariable UUID id, @Valid @RequestBody ContaAtualizarRequest request) {
         Conta conta = contaService.atualizar(id, request.descricao(), request.valor(), request.dataVencimento(),
                 request.fornecedorId());
         return ResponseEntity.ok(contaMapper.toResponse(conta));
